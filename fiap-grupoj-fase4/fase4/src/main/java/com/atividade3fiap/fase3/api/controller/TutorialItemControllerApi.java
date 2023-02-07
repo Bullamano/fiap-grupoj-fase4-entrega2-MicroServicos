@@ -4,6 +4,9 @@ import com.atividade3fiap.fase3.api.dto.TutorialItemDto;
 import com.atividade3fiap.fase3.api.hateoas.TutorialItemAssembler;
 import com.atividade3fiap.fase3.entidade.TutorialItem;
 import com.atividade3fiap.fase3.servicos.TutorialItemServico;
+
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -26,6 +29,9 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/tutorialItem")
 public class TutorialItemControllerApi  {
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+
    @Autowired
     private TutorialItemServico tutorialItemServico;
    @Autowired
@@ -73,6 +79,10 @@ public class TutorialItemControllerApi  {
     @ResponseStatus(code = HttpStatus.CREATED)
     public EntityModel<TutorialItem> cadastrar(@RequestBody @Valid TutorialItemDto tutorialItemDto) {
         TutorialItem tutorialItem = tutorialItemServico.cadastrar(tutorialItemDto);
+
+        String routingKey = "order.v1.order-created";
+        Message message = new Message(tutorialItem.getId().toString().getBytes());
+        rabbitTemplate.send(routingKey,message);
 
         return tutorialItemAssembler.toModel(tutorialItem);
     }
